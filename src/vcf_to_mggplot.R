@@ -1,24 +1,26 @@
-source("src/functions_vcf_to_mplot.R")
+source("src/functions_vcf_to_mggplot.R")
 #### args####
 args <- commandArgs(trailingOnly = TRUE)
 args_input <- args[1]
-args_input_2 <- args[2]
-args_output <- args[3]
-args_param_REF <- args[4]
-args_param_ALT <- args[5]
-args_param_col <- args[6]
+args_output <- args[2]
+args_param_REF <- args[3]
+args_param_ALT <- args[4]
+
 #### test args####
 # args_input <-c("data/vcfdata2/positive/SRR11561273.hg38.identified.snp.fltr.vaf.headerfixed.0.0_0.8vaf.vcf")
 # args_input_2 <-c("data/vcfdata2/positive/SRR11561273.hg38.identified.snp.fltr.vaf.headerfixed.0.8_1.0vaf.vcf")
-# args_output <-c("output/vcfdata2/vis_manhattan/positive/SRR11561273_all.png")
+# args_output <-c("output/vcfdata2/vis_manhattan/positive/SRR11561273.png")
 # args_param_REF <- c("T")
 # args_param_ALT <- c("C")
-# args_param_col <- c("orange2")
+
 #### title####
 args_output %>%
     str_replace(., "output/vcfdata2/vis_manhattan/", "") %>%
-    str_replace(., "/", "_") -> args_title
-#### df_1#####
+    str_replace(., ".hg38.identified.snp.fltr.vaf.headerfixed.", "") %>%
+    str_replace(., "vaf.vcf", "") %>%
+    str_replace(., "/", "_") -> plot_title
+
+#### load filter#####
 # load
 read_vcf <- read.vcfR(args_input)
 # add ID
@@ -30,13 +32,14 @@ vcf_fix %>%
     dplyr::filter(REF==args_param_REF) %>%
         dplyr::filter(ALT==args_param_ALT) %>%
             .$ID -> id_T_C
-# Filter REF T ALT C
+
+#### Filter REF T ALT C####
 vcf_fix[id_T_C,] -> vcf_fix_TC
 read_vcf@gt %>%
     as.data.frame() %>%
         .[id_T_C,]-> vcf_gt_TC
 
-# transform df
+#### transform df####
 seq(1:length(vcf_gt_TC[,2])) %>%
     purrr::map(., .str_vaf) %>%
         unlist() -> vaf_value
@@ -60,11 +63,17 @@ str_replace_all(df_trim_Y$CHR,
                 ) -> df_trim_Y$CHR
 df_trim_Y$CHR <- as.integer(df_trim_Y$CHR)
 
-df_1 <- data.frame(CHR =df_trim_Y$CHR,
-                 BP = as.numeric(df_trim_Y$POS),
-                 P = as.numeric(df_trim_Y$VAF_value)
+df <- data.frame(chromosome =df_trim_Y$CHR,
+                 position = as.numeric(df_trim_Y$POS),
+                 pvalue = as.numeric(df_trim_Y$VAF_value)
                  )
-#### df_2#####
+#### manhattan ggplot####
+df <- df %>% 
+    arrange(chromosome, position) %>%
+    mutate(chromosome = factor(chromosome))
+.ggmanhatten(df) -> ggm_1
+
+#### load filter#####
 # load
 read_vcf <- read.vcfR(args_input_2)
 # add ID
@@ -76,13 +85,14 @@ vcf_fix %>%
     dplyr::filter(REF==args_param_REF) %>%
     dplyr::filter(ALT==args_param_ALT) %>%
     .$ID -> id_T_C
-# Filter REF T ALT C
+
+#### Filter REF T ALT C####
 vcf_fix[id_T_C,] -> vcf_fix_TC
 read_vcf@gt %>%
     as.data.frame() %>%
     .[id_T_C,]-> vcf_gt_TC
 
-# transform df
+#### transform df####
 seq(1:length(vcf_gt_TC[,2])) %>%
     purrr::map(., .str_vaf) %>%
     unlist() -> vaf_value
@@ -106,31 +116,28 @@ str_replace_all(df_trim_Y$CHR,
 ) -> df_trim_Y$CHR
 df_trim_Y$CHR <- as.integer(df_trim_Y$CHR)
 
-df_2 <- data.frame(CHR =df_trim_Y$CHR,
-                   BP = as.numeric(df_trim_Y$POS),
-                   P = as.numeric(df_trim_Y$VAF_value)
-                   )
-
-#### df####
-bind_rows(df_1, df_2)->df
-#### manhattan plot####
-mutate(df,
-       SNP = paste(CHR, BP)
-) ->df_SNP
-str_replace_all(df_SNP$SNP,
-                pattern = c(" " = "_")
-) ->df_SNP$SNP
-
-png(filename=args_output,
-    width=800,
-    height=600
+df_2 <- data.frame(chromosome =df_trim_Y$CHR,
+                 position = as.numeric(df_trim_Y$POS),
+                 pvalue = as.numeric(df_trim_Y$VAF_value)
 )
+#### manhattan ggplot####
+df_2 <- df_2 %>% 
+    arrange(chromosome, position) %>%
+    mutate(chromosome = factor(chromosome))
+.ggmanhatten(df_2) -> ggm_2
 
-manhattan(df_SNP,
-          main =args_title,
-          logp = FALSE,
-          col = args_param_col,
-          ylab =c("VAF")
+#### patchwork####
+gg <- ggm_1 +
+    ggm_2 +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = plot_title,
+                    caption = 'made with patchwork',
+                    theme = theme(plot.title = element_text(size = 50, hjust = 0.5))
+    )
+ggsave(filename = args_output, 
+       plot = gg,
+       dpi = 100, 
+       width = 10.0, 
+       height = 10.0,
+       limitsize = FALSE
 )
-
-dev.off()
