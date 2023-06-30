@@ -19,8 +19,8 @@ rule vcf_to_mplot_pos:
     output:
         'output/vcfdata2/vis_manhattan/positive/{p_s}_all.png'
     params:
-        args_param_REF = 'T',
-        args_param_ALT = 'C',
+        args_param_REF = 'C',
+        args_param_ALT = 'T',
         args_param_col = 'orange2'
     benchmark:
         'benchmarks/output/vcfdata2/vis_manhattan/positive/{p_s}_all.txt'
@@ -39,8 +39,8 @@ rule vcf_to_mplot_neg:
     output:
         'output/vcfdata2/vis_manhattan/negative/{p_s}_all.png'
     params:
-        args_param_REF = 'T',
-        args_param_ALT = 'C',
+        args_param_REF = 'C',
+        args_param_ALT = 'T',
         args_param_col = 'orange2'
     benchmark:
         'benchmarks/output/vcfdata2/vis_manhattan/negative/{p_s}_all.txt'
