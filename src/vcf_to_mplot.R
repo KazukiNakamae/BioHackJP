@@ -4,13 +4,15 @@ args <- commandArgs(trailingOnly = TRUE)
 args_input <- args[1]
 args_input_2 <- args[2]
 args_output <- args[3]
-args_param_REF <- args[4]
-args_param_ALT <- args[5]
-args_param_col <- args[6]
+args_output_2 <- args[4]
+args_param_REF <- args[5]
+args_param_ALT <- args[6]
+args_param_col <- args[7]
 #### test args####
 # args_input <-c("data/vcfdata2/positive/SRR11561273.hg38.identified.snp.fltr.vaf.headerfixed.0.0_0.8vaf.vcf")
 # args_input_2 <-c("data/vcfdata2/positive/SRR11561273.hg38.identified.snp.fltr.vaf.headerfixed.0.8_1.0vaf.vcf")
 # args_output <-c("output/vcfdata2/vis_manhattan/positive/SRR11561273_all.png")
+# args_output_2 <-c("output/vcfdata2/vis_manhattan/positive/SRR11561273_all.csv")
 # args_param_REF <- c("T")
 # args_param_ALT <- c("C")
 # args_param_col <- c("orange2")
@@ -134,3 +136,7 @@ manhattan(df_SNP,
 )
 
 dev.off()
+
+df %>% group_by(CHR) %>% count() -> count_chr
+# CSVファイルとして保存
+write_csv(count_chr, args_output_2)
